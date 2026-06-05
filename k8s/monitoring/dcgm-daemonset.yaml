@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: dcgm-exporter
+  namespace: hospital-llm
+  labels:
+    app: dcgm-exporter
+spec:
+  selector:
+    matchLabels:
+      app: dcgm-exporter
+  template:
+    metadata:
+      labels:
+        app: dcgm-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9400"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Only schedule on GPU nodes
+      nodeSelector:
+        node.kubernetes.io/instance-type: g6e.xlarge
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"
+      containers:
+        - name: dcgm-exporter
+          image: nvcr.io/nvidia/k8s/dcgm-exporter:3.3.5-3.4.0-ubuntu22.04
+          ports:
+            - containerPort: 9400
+              name: metrics
+          securityContext:
+            runAsNonRoot: false
+            privileged: true
+          volumeMounts:
+            - name: pod-gpu-resources
+              readOnly: true
+              mountPath: /var/lib/kubelet/pod-resources
+      volumes:
+        - name: pod-gpu-resources
+          hostPath:
+            path: /var/lib/kubelet/pod-resources
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dcgm-exporter
+  namespace: hospital-llm
+  labels:
+    app: dcgm-exporter
+spec:
+  selector:
+    app: dcgm-exporter
+  ports:
+    - name: metrics
+      port: 9400
+      targetPort: 9400

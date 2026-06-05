@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inference
+  namespace: hospital-llm
+  labels:
+    app: inference
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inference
+  template:
+    metadata:
+      labels:
+        app: inference
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8002"
+        prometheus.io/path: "/metrics"
+    spec:
+      nodeSelector:
+        node.kubernetes.io/instance-type: g6e.xlarge
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"
+      containers:
+        - name: vllm
+          # Qwen3.5-9B on L40S (48 GB VRAM) — fits comfortably with bfloat16
+          image: vllm/vllm-openai:latest
+          args:
+            - "--model"
+            - "Qwen/Qwen3.5-9B"
+            - "--port"
+            - "8001"
+            - "--trust-remote-code"
+            - "--enable-prefix-caching"
+            - "--max-model-len"
+            - "16384"
+            - "--gpu-memory-utilization"
+            - "0.88"
+            - "--dtype"
+            - "bfloat16"
+            - "--tensor-parallel-size"
+            - "1"
+            - "--speculative-config"
+            - '{"method":"mtp","num_speculative_tokens":1}'
+            - "--language-model-only"
+          ports:
+            - containerPort: 8001
+              name: vllm-http
+          env:
+            - name: HUGGING_FACE_HUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-credentials
+                  key: token
+          resources:
+            requests:
+              cpu: "4"
+              memory: "28Gi"
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "4"
+              memory: "30Gi"
+              nvidia.com/gpu: "1"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 180
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            failureThreshold: 10
+
+        - name: inference-app
+          image: hospital-inference:latest
+          ports:
+            - containerPort: 8002
+              name: app-http
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: inference-url
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-credentials
+                  key: url
+            - name: VLLM_BASE_URL
+              value: "http://localhost:8001/v1"
+            - name: MODEL_NAME
+              value: "Qwen/Qwen3.5-9B"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"

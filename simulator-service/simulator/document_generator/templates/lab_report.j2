@@ -1,0 +1,81 @@
+LABORATORY REPORT
+Date: {{ resulted_at }}
+Patient: {{ patient_id }}
+Ordering Clinician: {{ author_name }}
+{% if critical_flags %}
+*** CRITICAL VALUES — NOTIFIED PROVIDER AT {{ resulted_at }} ***
+{% for flag in critical_flags %}
+  !! {{ flag }}
+{% endfor %}
+***
+{% endif %}
+
+COMPLETE BLOOD COUNT (CBC)
+  WBC:          {{ "%.1f"|format(cbc.wbc) }} 10³/µL     [Ref: 4.5–11.0]  {% if cbc.wbc > 11.0 %}H{% elif cbc.wbc < 4.5 %}L{% endif %}
+
+  RBC:          {{ "%.2f"|format(cbc.rbc) }} 10⁶/µL     [Ref: 4.5–5.5]   {% if cbc.rbc < 4.5 %}L{% endif %}
+
+  Hemoglobin:   {{ "%.1f"|format(cbc.hemoglobin) }} g/dL         [Ref: 13.5–17.5]  {% if cbc.hemoglobin < 13.5 %}L{% elif cbc.hemoglobin > 17.5 %}H{% endif %}
+
+  Hematocrit:   {{ "%.1f"|format(cbc.hematocrit) }} %             [Ref: 41.0–53.0]  {% if cbc.hematocrit < 41.0 %}L{% endif %}
+
+  Platelets:    {{ "%.0f"|format(cbc.platelets) }} 10³/µL      [Ref: 150–400]    {% if cbc.platelets < 150 %}L{% elif cbc.platelets > 400 %}H{% endif %}
+
+
+BASIC METABOLIC PANEL (BMP)
+  Sodium:       {{ "%.1f"|format(bmp.sodium) }} mEq/L       [Ref: 136–145]    {% if bmp.sodium < 136 %}L{% elif bmp.sodium > 145 %}H{% endif %}
+
+  Potassium:    {{ "%.1f"|format(bmp.potassium) }} mEq/L       [Ref: 3.5–5.0]    {% if bmp.potassium < 3.5 %}L{% elif bmp.potassium > 5.0 %}H{% endif %}
+
+  Chloride:     {{ "%.1f"|format(bmp.chloride) }} mEq/L       [Ref: 98–106]     {% if bmp.chloride < 98 %}L{% elif bmp.chloride > 106 %}H{% endif %}
+
+  Bicarbonate:  {{ "%.1f"|format(bmp.bicarbonate) }} mEq/L       [Ref: 22–29]      {% if bmp.bicarbonate < 22 %}L{% elif bmp.bicarbonate > 29 %}H{% endif %}
+
+  BUN:          {{ "%.1f"|format(bmp.bun) }} mg/dL        [Ref: 7–20]       {% if bmp.bun > 20 %}H{% endif %}
+
+  Creatinine:   {{ "%.2f"|format(bmp.creatinine) }} mg/dL        [Ref: 0.6–1.2]    {% if bmp.creatinine > 1.2 %}H{% endif %}
+
+  Glucose:      {{ "%.1f"|format(bmp.glucose) }} mg/dL        [Ref: 70–100]     {% if bmp.glucose > 100 %}H{% elif bmp.glucose < 70 %}L{% endif %}
+
+  Calcium:      {{ "%.1f"|format(bmp.calcium) }} mg/dL        [Ref: 8.5–10.5]   {% if bmp.calcium < 8.5 %}L{% elif bmp.calcium > 10.5 %}H{% endif %}
+
+  Anion Gap:    {{ "%.1f"|format(bmp.sodium - bmp.chloride - bmp.bicarbonate) }} mEq/L       [Ref: 8–12]       {% if (bmp.sodium - bmp.chloride - bmp.bicarbonate) > 12 %}H{% endif %}
+
+
+INFLAMMATORY MARKERS
+  CRP:          {{ "%.1f"|format(inflammatory.crp) }} mg/L          [Ref: <10.0]      {% if inflammatory.crp > 10 %}H{% endif %}
+
+  ESR:          {{ "%.0f"|format(inflammatory.esr) }} mm/hr         [Ref: <20 M / <30 F]  {% if inflammatory.esr > 30 %}H{% endif %}
+
+{% if disease_specific %}
+DISEASE-SPECIFIC PANELS
+{% if disease_specific.lactate is not none %}
+  Lactate:      {{ "%.2f"|format(disease_specific.lactate) }} mmol/L        [Ref: 0.5–2.0]    {% if disease_specific.lactate > 2.0 %}H{% endif %}
+
+{% endif %}
+{% if disease_specific.procalcitonin is not none %}
+  Procalcitonin:{{ "%.2f"|format(disease_specific.procalcitonin) }} ng/mL         [Ref: <0.5]       {% if disease_specific.procalcitonin > 0.5 %}H{% endif %}
+
+{% endif %}
+{% if disease_specific.bnp is not none %}
+  BNP:          {{ "%.0f"|format(disease_specific.bnp) }} pg/mL         [Ref: <100]       {% if disease_specific.bnp > 100 %}H{% endif %}
+
+{% endif %}
+{% if disease_specific.creatinine is not none %}
+  Creatinine*:  {{ "%.2f"|format(disease_specific.creatinine) }} mg/dL        [Ref: 0.6–1.2]    {% if disease_specific.creatinine > 1.2 %}H{% endif %}
+
+{% endif %}
+{% if disease_specific.glucose is not none %}
+  Glucose*:     {{ "%.1f"|format(disease_specific.glucose) }} mg/dL        [Ref: 70–100]     {% if disease_specific.glucose > 100 %}H{% endif %}
+
+{% endif %}
+{% if disease_specific.inr is not none %}
+  INR:          {{ "%.2f"|format(disease_specific.inr) }}               [Ref: 0.8–1.2]    {% if disease_specific.inr > 1.2 %}H{% endif %}
+
+{% endif %}
+{% endif %}
+
+NARRATIVE INTERPRETATION:
+{{ narrative }}
+
+Reported by: Clinical Laboratory

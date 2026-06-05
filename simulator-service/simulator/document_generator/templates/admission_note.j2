@@ -1,0 +1,69 @@
+ADMISSION NOTE
+Date: {{ admitted_at }}
+Author: {{ author_name }}, {{ author_role }}{% if author_shift %} — {{ author_shift }}{% endif %}
+
+Attending of Record: {{ cosign_name }}, Attending Physician
+Service: {{ service }}{% if specialist %} / Consulting: {{ specialist.department }}{% endif %}
+MRN: {{ patient_id }}
+
+CHIEF COMPLAINT:
+{{ chief_complaint }}
+
+HISTORY OF PRESENT ILLNESS:
+{{ hpi }}
+
+Past Medical History:
+{% if chronic_conditions %}
+{% for condition in chronic_conditions %}
+- {{ condition }}
+{% endfor %}
+{% else %}
+- No significant past medical history
+{% endif %}
+
+Allergies:
+{% if allergies %}
+{% for allergy in allergies %}
+- {{ allergy }}
+{% endfor %}
+{% else %}
+- No known drug allergies (NKDA)
+{% endif %}
+
+Social History:
+Smoking: {{ smoking_status }}. Alcohol: social use. Living: independently at home.
+
+Review of Systems:
+As per HPI. Additional systems reviewed and negative unless noted above.
+
+VITAL SIGNS:
+As documented in nursing flow sheet at time of admission.
+
+PHYSICAL EXAMINATION:
+General: {{ severity | qualifier }} distress.
+Cardiovascular: Regular rate and rhythm, no murmurs.
+Respiratory: Breath sounds as noted in HPI.
+Abdomen: Soft, non-tender, non-distended.
+Extremities: As noted in HPI.
+Neurological: Alert and oriented × {{ "3" if severity != "critical" else "1" }}.
+
+PROCEDURES & INTERVENTIONS:
+{% for item in interventions %}
+- {{ item }}
+{% endfor %}
+
+ASSESSMENT AND PLAN:
+1. {{ primary_diagnosis }} — {{ severity | qualifier }} severity
+{{ plan | numbered_list }}
+
+{% if secondary_diagnoses %}
+Secondary Diagnoses:
+{% for dx in secondary_diagnoses %}
+- {{ dx }}: Continue monitoring; manage per current guidelines.
+{% endfor %}
+{% endif %}
+
+Disposition: {{ encounter_type | upper }} admission.
+Signed: {{ author_name }}, {{ author_role }}
+Co-signed: {{ cosign_name }}, Attending Physician
+{% if specialist %}Consulting: {{ specialist.name }}, {{ specialist.role }} ({{ specialist.department }}){% endif %}

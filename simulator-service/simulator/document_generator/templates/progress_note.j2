@@ -1,0 +1,52 @@
+PROGRESS NOTE
+Date: {{ note_date }}
+Author: {{ author_name }}, {{ author_role }}{% if author_shift %} — {{ author_shift }}{% endif %}
+
+Attending of Record: {{ attending_name }}, Attending Physician
+Service: {{ service }}
+Patient: {{ patient_id }}
+Hospital Day: {{ hospital_day }}
+
+SUBJECTIVE:
+Patient reports {% if severity in ["mild", "moderate"] %}improvement in symptoms{% else %}persistent {{ chief_complaint_short }}{% endif %} since admission.
+{% if hospital_day > 1 %}
+Overnight events: {{ overnight_events }}
+{% endif %}
+
+OBJECTIVE:
+Vital signs reviewed and documented in nursing flowsheet.
+Repeat labs reviewed — trending vs admission:
+  - WBC: {{ "%.1f"|format(cbc.wbc) }} 10³/µL  (admission: {{ "%.1f"|format(admission_cbc.wbc) }}){% if cbc.wbc < admission_cbc.wbc %}  ↓ improving{% elif cbc.wbc > admission_cbc.wbc %}  ↑ worsening{% endif %}
+
+  - Creatinine: {{ "%.2f"|format(bmp.creatinine) }} mg/dL  (admission: {{ "%.2f"|format(admission_bmp.creatinine) }}){% if bmp.creatinine < admission_bmp.creatinine %}  ↓ improving{% elif bmp.creatinine > admission_bmp.creatinine %}  ↑ worsening{% endif %}
+
+  - CRP: {{ "%.1f"|format(inflammatory.crp) }} mg/L
+{% if disease_specific.lactate is not none %}
+  - Lactate: {{ "%.2f"|format(disease_specific.lactate) }} mmol/L
+{% endif %}
+{% if disease_specific.bnp is not none %}
+  - BNP: {{ "%.0f"|format(disease_specific.bnp) }} pg/mL
+{% endif %}
+{% if disease_specific.glucose is not none %}
+  - Glucose: {{ "%.1f"|format(disease_specific.glucose) }} mg/dL
+{% endif %}
+
+Active Interventions:
+{% for item in interventions %}
+- {{ item }}
+{% endfor %}
+
+ASSESSMENT:
+{{ assessment }}
+Overall clinical trajectory: {% if severity in ["mild", "moderate"] %}improving{% elif severity == "severe" %}guarded{% else %}critical{% endif %}.
+
+PLAN:
+{{ plan | numbered_list }}
+
+Current Medications:
+{% for med in medications %}
+- {{ med }}
+{% endfor %}
+
+Signed: {{ author_name }}, {{ author_role }}
+Attending of Record: {{ attending_name }}, Attending Physician

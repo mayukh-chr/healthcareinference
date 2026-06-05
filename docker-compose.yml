@@ -1,0 +1,127 @@
+services:
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: simulator
+      POSTGRES_PASSWORD: simulator
+      POSTGRES_DB: hospital
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_roles.sql:/docker-entrypoint-initdb.d/init_roles.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U simulator -d hospital"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  simulator:
+    build:
+      context: ./simulator-service
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://simulator:simulator@postgres:5432/hospital
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  inference:
+    build:
+      context: ./inference-service
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://inference_user:inference_pass@postgres:5432/hospital
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      VLLM_BASE_URL: http://vllm:8001/v1
+      MODEL_NAME: Qwen/Qwen3.5-9B
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  benchmark:
+    build:
+      context: ./benchmark-service
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://benchmark_user:benchmark_pass@postgres:5432/hospital
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8002/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana_dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana_datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+  grafana_data:

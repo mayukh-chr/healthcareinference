@@ -1,0 +1,73 @@
+DISCHARGE SUMMARY
+Discharge Date: {{ discharge_date }}
+Author: {{ author_name }}, {{ author_role }}
+Service: {{ service }}{% if specialist %} / Consulting: {{ specialist.department }} ({{ specialist.name }}){% endif %}
+Patient: {{ patient_id }}
+Admission Date: {{ admitted_at }}
+Total Length of Stay: {{ los_days }} day(s)
+
+PRINCIPAL DIAGNOSIS:
+{{ primary_diagnosis }} ({{ primary_icd10 }}) — {{ severity | qualifier }} severity
+
+SECONDARY DIAGNOSES:
+{% if secondary_diagnoses %}
+{% for dx in secondary_diagnoses %}
+- {{ dx }}
+{% endfor %}
+{% else %}
+- None identified during this admission
+{% endif %}
+
+HOSPITAL COURSE SUMMARY:
+{{ hospital_course }}
+
+PROCEDURES PERFORMED:
+{% if procedures %}
+{% for proc in procedures %}
+- {{ proc }}
+{% endfor %}
+{% else %}
+- No procedures performed
+{% endif %}
+
+SIGNIFICANT LABORATORY FINDINGS:
+                    Admission        Discharge
+  WBC:              {{ "%.1f"|format(cbc.wbc) }} 10³/µL        {{ "%.1f"|format(discharge_cbc.wbc) }} 10³/µL
+  Creatinine:       {{ "%.2f"|format(bmp.creatinine) }} mg/dL         {{ "%.2f"|format(discharge_bmp.creatinine) }} mg/dL
+  CRP:              {{ "%.1f"|format(inflammatory.crp) }} mg/L
+{% if disease_specific.lactate is not none %}
+  Peak Lactate: {{ "%.2f"|format(disease_specific.lactate) }} mmol/L
+{% endif %}
+{% if disease_specific.bnp is not none %}
+  Peak BNP: {{ "%.0f"|format(disease_specific.bnp) }} pg/mL
+{% endif %}
+{% if disease_specific.glucose is not none %}
+  Peak Glucose: {{ "%.1f"|format(disease_specific.glucose) }} mg/dL
+{% endif %}
+
+DISCHARGE CONDITION:
+{% if severity == "mild" %}Stable — improved to baseline.
+{% elif severity == "moderate" %}Stable — improved but close follow-up required.
+{% elif severity == "severe" %}Guarded — significant residual deficits noted.
+{% else %}Critical — transitioning to {{ discharge_disposition }}.{% endif %}
+
+DISCHARGE DISPOSITION:
+{{ discharge_disposition | upper }}
+
+DISCHARGE MEDICATIONS:
+{% for med in discharge_medications %}
+- {{ med }}
+{% endfor %}
+
+FOLLOW-UP INSTRUCTIONS:
+1. Follow up with primary care physician in {{ followup_days }} days.
+{% if specialist_followup %}
+2. {{ specialist_followup }} follow-up in 1–2 weeks.
+{% endif %}
+3. Return to ED immediately for worsening symptoms, fever > 38.5°C, or any new concerning symptoms.
+
+PATIENT EDUCATION:
+Patient and family educated on diagnosis, medications, activity restrictions, and return precautions. Verbalized understanding.
+
+Electronically signed: {{ author_name }}, {{ author_role }}
+Discharge Date/Time: {{ discharge_date }}
