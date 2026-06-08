@@ -13,7 +13,7 @@
 set -euo pipefail
 
 CLUSTER_NAME="${CLUSTER_NAME:-hospital-llm}"
-AWS_REGION="${AWS_REGION:-us-east-1}"
+AWS_REGION="${AWS_REGION:-ap-south-1}"
 K8S_VERSION="1.30"
 NAMESPACE="hospital-llm"
 HF_TOKEN="${HF_TOKEN:-}"   # set to download Qwen2.5-9B from HuggingFace
@@ -49,9 +49,13 @@ eksctl create nodegroup \
   --nodes-min  1 \
   --nodes-max  3 \
   --node-labels "workload=gpu-inference" \
-  --node-taints "nvidia.com/gpu=present:NoSchedule" \
   --asg-access \
   --managed
+
+# --node-taints is unsupported for managed nodegroups via CLI; apply after nodes are Ready
+echo "==> Waiting for GPU nodes to be Ready before applying taint"
+kubectl wait --for=condition=Ready nodes -l workload=gpu-inference --timeout=300s
+kubectl taint nodes -l workload=gpu-inference nvidia.com/gpu=present:NoSchedule --overwrite
 
 echo "==> Updating kubeconfig"
 aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION"
