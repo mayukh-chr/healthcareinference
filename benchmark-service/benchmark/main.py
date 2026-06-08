@@ -54,6 +54,7 @@ async def run_benchmark(
                     ir.inferred_output,
                     ir.latency_ms,
                     ir.ttft_ms,
+                    ir.itl_ms,
                     ir.completion_tokens,
                     gt.primary_icd10,
                     gt.mortality_risk,
@@ -85,6 +86,7 @@ async def run_benchmark(
                 },
                 "latency_ms": row.latency_ms,
                 "ttft_ms": row.ttft_ms,
+                "itl_ms": row.itl_ms,
                 "completion_tokens": row.completion_tokens,
             }
         by_encounter[eid]["tasks"][row.task] = row.inferred_output
@@ -99,6 +101,7 @@ async def run_benchmark(
                 ground_truth=enc_data["ground_truth"],
                 latency_ms=enc_data.get("latency_ms"),
                 ttft_ms=enc_data.get("ttft_ms"),
+                itl_ms=enc_data.get("itl_ms"),
                 completion_tokens=enc_data.get("completion_tokens"),
             )
             await session.execute(
@@ -107,14 +110,14 @@ async def run_benchmark(
                         (result_id, run_id, encounter_id, model_name,
                          entity_f1, diagnosis_exact, diagnosis_chapter,
                          structured_json_score, rouge_l, risk_brier,
-                         latency_ms, ttft_ms, tokens_per_sec,
+                         latency_ms, ttft_ms, itl_ms, tokens_per_sec,
                          json_valid_rate, function_calling_success,
                          instruction_following_score, hallucination_rate)
                     VALUES
                         (:result_id, :run_id, :encounter_id, :model_name,
                          :entity_f1, :diagnosis_exact, :diagnosis_chapter,
                          :structured_json_score, :rouge_l, :risk_brier,
-                         :latency_ms, :ttft_ms, :tokens_per_sec,
+                         :latency_ms, :ttft_ms, :itl_ms, :tokens_per_sec,
                          :json_valid_rate, :function_calling_success,
                          :instruction_following_score, :hallucination_rate)
                 """),
@@ -131,6 +134,7 @@ async def run_benchmark(
                     "risk_brier": result.risk_brier,
                     "latency_ms": result.latency_ms,
                     "ttft_ms": result.ttft_ms,
+                    "itl_ms": result.itl_ms,
                     "tokens_per_sec": result.tokens_per_sec,
                     "json_valid_rate": result.json_valid_rate,
                     "function_calling_success": result.function_calling_success,
@@ -165,6 +169,8 @@ async def get_results(run_id: str = Query(...)) -> dict:
                     PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY latency_ms)       AS p99_latency_ms,
                     PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY ttft_ms)          AS p50_ttft_ms,
                     PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY ttft_ms)          AS p95_ttft_ms,
+                    PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY itl_ms)           AS p50_itl_ms,
+                    PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY itl_ms)           AS p95_itl_ms,
                     AVG(tokens_per_sec)                                             AS avg_tokens_per_sec,
                     COUNT(*)                                                        AS n_encounters
                 FROM benchmark_results
@@ -205,6 +211,8 @@ async def get_results(run_id: str = Query(...)) -> dict:
             "p99_latency_ms": row.p99_latency_ms,
             "p50_ttft_ms": row.p50_ttft_ms,
             "p95_ttft_ms": row.p95_ttft_ms,
+            "p50_itl_ms": row.p50_itl_ms,
+            "p95_itl_ms": row.p95_itl_ms,
             "avg_tokens_per_sec": avg_tps,
             "cost_per_1m_tokens_usd": cost_per_1m,
         },

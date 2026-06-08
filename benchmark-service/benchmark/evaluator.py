@@ -27,6 +27,7 @@ class EncounterBenchmarkResult:
     # Performance
     latency_ms: int | None = None
     ttft_ms: int | None = None
+    itl_ms: float | None = None
     tokens_per_sec: float | None = None
     # LLM quality layer
     json_valid_rate: float | None = None
@@ -43,6 +44,7 @@ def evaluate_encounter(
     ground_truth: dict,
     latency_ms: int | None = None,
     ttft_ms: int | None = None,
+    itl_ms: float | None = None,
     completion_tokens: int | None = None,
 ) -> EncounterBenchmarkResult:
     result = EncounterBenchmarkResult(
@@ -51,6 +53,7 @@ def evaluate_encounter(
         model_name=model_name,
         latency_ms=latency_ms,
         ttft_ms=ttft_ms,
+        itl_ms=itl_ms,
     )
 
     if latency_ms and completion_tokens:

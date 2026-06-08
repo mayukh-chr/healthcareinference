@@ -64,9 +64,9 @@ async def _run_inference_pipeline(encounter_id: str, documents: list[str]) -> No
         for task in _TASKS:
             messages = build_prompt(task, documents)
             try:
-                output, prompt_tokens, completion_tokens, latency_ms, ttft_ms = await infer(task, messages)
+                output, prompt_tokens, completion_tokens, latency_ms, ttft_ms, itl_ms = await infer(task, messages)
                 await _store_result(
-                    session, encounter_id, task, output, prompt_tokens, completion_tokens, latency_ms, ttft_ms
+                    session, encounter_id, task, output, prompt_tokens, completion_tokens, latency_ms, ttft_ms, itl_ms
                 )
             except Exception as exc:
                 logger.error("inference_task_failed", task=task, encounter_id=encounter_id, error=str(exc))
@@ -83,16 +83,17 @@ async def _store_result(
     completion_tokens: int,
     latency_ms: int,
     ttft_ms: int,
+    itl_ms: float | None,
 ) -> None:
     from sqlalchemy import text
     await session.execute(
         text("""
             INSERT INTO inference_results
                 (result_id, encounter_id, model_name, task, inferred_output,
-                 prompt_tokens, completion_tokens, latency_ms, ttft_ms)
+                 prompt_tokens, completion_tokens, latency_ms, ttft_ms, itl_ms)
             VALUES
                 (:result_id, :encounter_id, :model_name, :task, :inferred_output::jsonb,
-                 :prompt_tokens, :completion_tokens, :latency_ms, :ttft_ms)
+                 :prompt_tokens, :completion_tokens, :latency_ms, :ttft_ms, :itl_ms)
         """),
         {
             "result_id": str(uuid.uuid4()),
@@ -104,5 +105,6 @@ async def _store_result(
             "completion_tokens": completion_tokens,
             "latency_ms": latency_ms,
             "ttft_ms": ttft_ms,
+            "itl_ms": itl_ms,
         },
     )
