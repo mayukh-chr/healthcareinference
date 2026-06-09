@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 
 import structlog
@@ -14,6 +15,23 @@ logger = structlog.get_logger()
 _client = AsyncOpenAI(base_url=settings.vllm_base_url, api_key="not-needed")
 
 
+def _extract_json(content: str) -> dict:
+    # Strip Qwen3 thinking tags if present
+    content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        # Find the first {...} block in the response
+        match = re.search(r"\{.*\}", content, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group())
+            except json.JSONDecodeError:
+                pass
+    logger.warning("json_parse_failed", task="unknown", content=content[:200])
+    return {"raw": content}
+
+
 async def infer(task: str, messages: list[dict]) -> tuple[dict, int, int, int, int, float | None]:
     """
     Returns (output_dict, prompt_tokens, completion_tokens, latency_ms, ttft_ms, itl_ms).
@@ -23,7 +41,8 @@ async def infer(task: str, messages: list[dict]) -> tuple[dict, int, int, int, i
     schema_cls = TASK_SCHEMAS.get(task)
     schema = schema_cls.model_json_schema() if schema_cls else None
 
-    extra_body: dict = {}
+    # Disable Qwen3 thinking mode — we want direct JSON output
+    extra_body: dict = {"chat_template_kwargs": {"enable_thinking": False}}
     if schema:
         extra_body["guided_json"] = schema
 
@@ -65,10 +84,6 @@ async def infer(task: str, messages: list[dict]) -> tuple[dict, int, int, int, i
     if len(token_times) > 1:
         itl_ms = round((token_times[-1] - token_times[0]) / (len(token_times) - 1) * 1000, 2)
 
-    try:
-        output = json.loads(content)
-    except json.JSONDecodeError:
-        logger.warning("json_parse_failed", task=task, content=content[:200])
-        output = {"raw": content}
+    output = _extract_json(content)
 
     return output, prompt_tokens, completion_tokens, latency_ms, ttft_ms, itl_ms

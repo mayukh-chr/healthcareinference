@@ -9,4 +9,4 @@ RUN pip install --no-cache-dir .
 
 COPY . .
 
-CMD ["uvicorn", "inference.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "2"]
+CMD ["uvicorn", "inference.main:app", "--host", "0.0.0.0", "--port", "8002", "--workers", "2"]

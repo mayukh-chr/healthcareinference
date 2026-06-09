@@ -47,6 +47,8 @@ def evaluate_encounter(
     itl_ms: float | None = None,
     completion_tokens: int | None = None,
 ) -> EncounterBenchmarkResult:
+    inference_results = {k: v for k, v in inference_results.items() if v is not None}
+
     result = EncounterBenchmarkResult(
         encounter_id=encounter_id,
         run_id=run_id,

@@ -37,3 +37,6 @@ coverage.xml
 # Output files
 output.txt
 test.txt
+
+benchmark_reports/
+.venv/

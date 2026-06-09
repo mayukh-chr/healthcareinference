@@ -1,57 +1,68 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: simulator
+  name: benchmark
   namespace: hospital-llm
   labels:
-    app: simulator
+    app: benchmark
 spec:
-  replicas: 2
+  replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
-      app: simulator
+      app: benchmark
   template:
     metadata:
       labels:
-        app: simulator
+        app: benchmark
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "8000"
+        prometheus.io/port: "8002"
         prometheus.io/path: "/metrics"
     spec:
       containers:
-        - name: simulator
-          image: 602296717247.dkr.ecr.ap-south-1.amazonaws.com/hospital-simulator:latest
+        - name: benchmark
+          image: 602296717247.dkr.ecr.ap-south-1.amazonaws.com/hospital-benchmark:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 8000
+            - containerPort: 8002
+              name: http
           env:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   name: db-credentials
-                  key: simulator-url
-            - name: RABBITMQ_URL
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-credentials
-                  key: url
+                  key: benchmark-url
           resources:
             requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
               cpu: "500m"
               memory: "512Mi"
-            limits:
-              cpu: "2"
-              memory: "2Gi"
           livenessProbe:
             httpGet:
               path: /v1/health
-              port: 8000
-            initialDelaySeconds: 30
+              port: 8002
+            initialDelaySeconds: 15
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /v1/health
-              port: 8000
-            initialDelaySeconds: 10
+              port: 8002
+            initialDelaySeconds: 5
             periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: benchmark-svc
+  namespace: hospital-llm
+spec:
+  selector:
+    app: benchmark
+  ports:
+    - port: 8002
+      targetPort: 8002
+      name: http

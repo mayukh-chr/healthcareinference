@@ -60,17 +60,17 @@ async def _handle_message(message: aio_pika.abc.AbstractIncomingMessage) -> None
 
 async def _run_inference_pipeline(encounter_id: str, documents: list[str]) -> None:
     logger.info("inference_started", encounter_id=encounter_id, n_docs=len(documents))
-    async with SessionLocal() as session:
-        for task in _TASKS:
-            messages = build_prompt(task, documents)
-            try:
-                output, prompt_tokens, completion_tokens, latency_ms, ttft_ms, itl_ms = await infer(task, messages)
+    for task in _TASKS:
+        messages = build_prompt(task, documents)
+        try:
+            output, prompt_tokens, completion_tokens, latency_ms, ttft_ms, itl_ms = await infer(task, messages)
+            async with SessionLocal() as session:
                 await _store_result(
                     session, encounter_id, task, output, prompt_tokens, completion_tokens, latency_ms, ttft_ms, itl_ms
                 )
-            except Exception as exc:
-                logger.error("inference_task_failed", task=task, encounter_id=encounter_id, error=str(exc))
-        await session.commit()
+                await session.commit()
+        except Exception as exc:
+            logger.error("inference_task_failed", task=task, encounter_id=encounter_id, error=str(exc))
     logger.info("inference_completed", encounter_id=encounter_id)
 
 
@@ -92,7 +92,7 @@ async def _store_result(
                 (result_id, encounter_id, model_name, task, inferred_output,
                  prompt_tokens, completion_tokens, latency_ms, ttft_ms, itl_ms)
             VALUES
-                (:result_id, :encounter_id, :model_name, :task, :inferred_output::jsonb,
+                (:result_id, :encounter_id, :model_name, :task, CAST(:inferred_output AS jsonb),
                  :prompt_tokens, :completion_tokens, :latency_ms, :ttft_ms, :itl_ms)
         """),
         {

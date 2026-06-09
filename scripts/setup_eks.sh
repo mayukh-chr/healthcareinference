@@ -5,7 +5,7 @@
 # Usage:
 #   export AWS_REGION=us-east-1
 #   export CLUSTER_NAME=hospital-llm
-#   bash scripts/setup_eks.sh
+#   bash scripts/setup_eks.sh 
 #
 # Tear-down:
 #   eksctl delete cluster --name "$CLUSTER_NAME" --region "$AWS_REGION"

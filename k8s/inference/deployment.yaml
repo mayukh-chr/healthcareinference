@@ -7,6 +7,8 @@ metadata:
     app: inference
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: inference
@@ -39,14 +41,15 @@ spec:
             - "--max-model-len"
             - "16384"
             - "--gpu-memory-utilization"
-            - "0.88"
+            - "0.92"
             - "--dtype"
             - "bfloat16"
             - "--tensor-parallel-size"
             - "1"
-            - "--speculative-config"
-            - '{"method":"mtp","num_speculative_tokens":1}'
-            - "--language-model-only"
+            - "--load-format"
+            - "safetensors"
+            - "--safetensors-load-strategy"
+            - "mmap"
           ports:
             - containerPort: 8001
               name: vllm-http
@@ -58,7 +61,7 @@ spec:
                   key: token
           resources:
             requests:
-              cpu: "4"
+              cpu: "2"
               memory: "28Gi"
               nvidia.com/gpu: "1"
             limits:
@@ -69,19 +72,20 @@ spec:
             httpGet:
               path: /health
               port: 8001
-            initialDelaySeconds: 180
+            initialDelaySeconds: 600
             periodSeconds: 30
             failureThreshold: 5
           readinessProbe:
             httpGet:
               path: /health
               port: 8001
-            initialDelaySeconds: 120
-            periodSeconds: 10
-            failureThreshold: 10
+            initialDelaySeconds: 300
+            periodSeconds: 15
+            failureThreshold: 20
 
         - name: inference-app
-          image: hospital-inference:latest
+          image: 602296717247.dkr.ecr.ap-south-1.amazonaws.com/hospital-inference:latest
+          command: ["uvicorn", "inference.main:app", "--host", "0.0.0.0", "--port", "8002", "--workers", "2"]
           ports:
             - containerPort: 8002
               name: app-http

@@ -88,7 +88,7 @@ def _estimate_hallucination(sj_output: dict, ground_truth: dict) -> float | None
         return None
 
     gt_icd10 = str(ground_truth.get("primary_icd10", "")).strip().upper()
-    inferred_icd10 = str(sj_output.get("primary_icd10", "")).strip().upper()
+    inferred_icd10 = str(sj_output.get("primary_icd10") or "").strip().upper()
 
     if not gt_icd10 or not inferred_icd10:
         return None

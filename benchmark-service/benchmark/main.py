@@ -64,8 +64,17 @@ async def run_benchmark(
                 FROM inference_results ir
                 JOIN ground_truth_labels gt ON gt.encounter_id = ir.encounter_id
                 WHERE ir.model_name = :model_name
-                ORDER BY ir.created_at DESC
-                LIMIT :limit
+                  AND ir.encounter_id IN (
+                      SELECT encounter_id FROM (
+                          SELECT DISTINCT encounter_id, MAX(created_at) AS last_seen
+                          FROM inference_results
+                          WHERE model_name = :model_name
+                          GROUP BY encounter_id
+                          ORDER BY last_seen DESC
+                          LIMIT :limit
+                      ) sub
+                  )
+                ORDER BY ir.encounter_id, ir.task, ir.created_at DESC
             """),
             {"model_name": model_name, "limit": limit},
         )

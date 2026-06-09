@@ -19,7 +19,7 @@ def evaluate(inferred: dict, ground_truth: dict) -> dict[str, float | None]:
     total = len(_FIELDS)
 
     for field in _FIELDS:
-        inferred_val = str(inferred.get(field, "")).strip().lower()
+        inferred_val = str(inferred.get(field) or "").strip().lower()
         gt_val = str(gt.get(field, "")).strip().lower()
         if inferred_val and gt_val and inferred_val == gt_val:
             correct += 1

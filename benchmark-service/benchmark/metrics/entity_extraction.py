@@ -33,12 +33,12 @@ def evaluate(inferred: dict, ground_truth: dict) -> dict[str, float | None]:
     gt_output = ground_truth.get("expected_structured_output", {})
 
     medication_f1 = _list_f1(
-        inferred.get("medications", []),
-        gt_output.get("medications", []),
+        inferred.get("medications") or [],
+        gt_output.get("medications") or [],
     )
 
     # Lab findings: compare keys
-    inferred_labs = list(inferred.get("lab_findings", []))
+    inferred_labs = list(inferred.get("lab_findings") or [])
     expected_labs = [f"{k}: {v}" for k, v in gt_output.get("key_lab_findings", {}).items()]
     lab_f1 = _list_f1(inferred_labs, expected_labs)
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 def evaluate(inferred: dict, ground_truth: dict) -> dict[str, bool | None]:
-    inferred_icd10 = inferred.get("primary_icd10", "").strip().upper()
+    inferred_icd10 = (inferred.get("primary_icd10") or "").strip().upper()
     gt_icd10 = ground_truth.get("primary_icd10", "").strip().upper()
 
     if not inferred_icd10 or not gt_icd10:
